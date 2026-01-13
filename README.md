@@ -4,15 +4,16 @@
 
 > **Note:** This is a hobby project for personal use. It may contain bugs and is provided as-is without warranty.
 
-Offline translator with web interface for English <-> German.
+Offline translator with web interface supporting multiple languages.
 
 Based on [Argos Translate](https://github.com/argosopentech/argos-translate) (OpenNMT).
 
 ## Features
 
 - **Offline Translation** - No internet connection required after initial setup
-- **Bidirectional** - English -> German and German -> English
-- **Web Interface** - Simple Gradio UI
+- **Multi-Language** - Support for 30+ languages (downloadable via UI)
+- **Language Management** - Install/uninstall language packages directly in the app
+- **Web Interface** - Simple Gradio UI with Cindergrace styling
 - **Lightweight** - No GPU required
 
 ## Requirements
@@ -30,8 +31,10 @@ cd /home/zorinadmin/projekte/cindergrace_argos
 The script will:
 1. Create a virtual environment (`.venv`)
 2. Install dependencies (`argostranslate`, `gradio`)
-3. Download language packages (en<->de)
+3. Download default language packages (English <-> German)
 4. Start the Gradio server
+
+On first launch, you'll see a disclaimer about third-party language models that must be accepted.
 
 Then open the URL shown in the terminal (usually http://127.0.0.1:7860) in your browser.
 
@@ -68,17 +71,21 @@ cindergrace_argos/
 
 ## Managing Language Packages
 
+Use the **"Manage Languages"** tab in the web interface to:
+- View all available language packages
+- Install new language pairs
+- Uninstall unused packages
+
+Available languages include: Arabic, Chinese, Dutch, French, German, Italian, Japanese, Korean, Polish, Portuguese, Russian, Spanish, and many more.
+
+For a complete list, see: https://www.argosopentech.com/argospm/index/
+
+### CLI Alternative
+
 Show installed packages:
 ```bash
 source .venv/bin/activate
 python -c "import argostranslate.package; print([str(p) for p in argostranslate.package.get_installed_packages()])"
-```
-
-Add more languages:
-```python
-import argostranslate.package
-argostranslate.package.update_package_index()
-# Available packages: https://www.argosopentech.com/argospm/index/
 ```
 
 ## License
