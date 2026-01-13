@@ -16,7 +16,6 @@ import sys
 import textwrap
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parent
 VENV_DIR = REPO_ROOT / ".venv"
 IS_WINDOWS = os.name == "nt"
@@ -24,7 +23,9 @@ LANGUAGE_PAIRS = [
     ("en", "de"),
     ("de", "en"),
 ]
-DEPENDENCIES = ["argostranslate", "gradio"]
+# GitHub URL for cindergrace-common (not on PyPI)
+CINDERGRACE_COMMON_URL = "git+https://github.com/goettemar/cindergrace-common.git"
+DEPENDENCIES = ["argostranslate", "gradio", CINDERGRACE_COMMON_URL]
 
 
 def run(command: list[str], **kwargs) -> None:
