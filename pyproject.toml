@@ -1,0 +1,98 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cindergrace-argos"
+version = "0.1.0"
+description = "Offline translator with web interface for English and German"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "Cindergrace" }
+]
+keywords = ["translation", "argos", "offline", "nlp", "gradio"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Text Processing :: Linguistic",
+]
+dependencies = [
+    "gradio>=4.0.0",
+    "argostranslate>=1.9.0",
+    "cindergrace-common>=0.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "mypy",
+]
+
+[project.scripts]
+cindergrace-argos = "app:main"
+
+[project.urls]
+Homepage = "https://github.com/goettemar/cindergrace-argos"
+Repository = "https://github.com/goettemar/cindergrace-argos"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = [".venv", "build", "dist", ".git", "__pycache__", ".mypy_cache", ".ruff_cache", "temp"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "C4", "UP"]
+ignore = ["E501", "E711", "E712", "E402"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = false
+warn_unused_ignores = true
+ignore_missing_imports = true
+disable_error_code = ["annotation-unchecked"]
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "app.py",  # Gradio UI not unit-testable
+    "installer.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ ==",
+    "raise NotImplementedError",
+    "@abstractmethod",
+]
+fail_under = 60
+
+[tool.pydocstyle]
+convention = "google"
+add-ignore = [
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D107",
+]
+match = "(?!test_).*\\.py"
+
+[tool.bandit]
+exclude_dirs = [".venv", "tests", "temp"]
+skips = ["B101"]
+
+[tool.radon]
+cc_min = "D"
