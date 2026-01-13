@@ -11,7 +11,7 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404 - Required for installer
 import sys
 import textwrap
 from pathlib import Path
@@ -31,7 +31,7 @@ def run(command: list[str], **kwargs) -> None:
     """Run a subprocess command and show real-time output."""
     kwargs.setdefault("check", True)
     print(f"[cmd] {' '.join(str(c) for c in command)}")
-    subprocess.run(command, **kwargs)
+    subprocess.run(command, **kwargs)  # nosec B603 - Input is controlled
 
 
 def venv_python() -> Path:
