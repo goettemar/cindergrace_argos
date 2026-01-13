@@ -110,18 +110,12 @@ def translate_text(text, from_lang_name, to_lang_name):
         from_code = lang_map[from_lang_name]
         to_code = lang_map[to_lang_name]
 
-        # Check if the specific translation is available
-        installed_translations = argostranslate.translate.get_installed_translations()
+        # Get translation using the simpler API
+        translation = argostranslate.translate.get_translation_from_codes(from_code, to_code)
 
-        # Filter for from_code
-        valid_translations = [t for t in installed_translations if t.from_lang.code == from_code]
-        # Filter for to_code
-        valid_translations = [t for t in valid_translations if t.to_lang.code == to_code]
-
-        if not valid_translations:
+        if not translation:
             raise gr.Error(f"No installed language package found for {from_lang_name} -> {to_lang_name}. Please install under 'Manage Languages'.")
 
-        translation = valid_translations[0]
         return translation.translate(text)
 
     except Exception as e:
