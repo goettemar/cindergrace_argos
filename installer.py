@@ -23,9 +23,7 @@ LANGUAGE_PAIRS = [
     ("en", "de"),
     ("de", "en"),
 ]
-# GitHub URL for cindergrace-common (not on PyPI)
-CINDERGRACE_COMMON_URL = "git+https://github.com/goettemar/cindergrace-common.git"
-DEPENDENCIES = ["argostranslate", "gradio", CINDERGRACE_COMMON_URL]
+DEPENDENCIES = ["argostranslate", "gradio", "cindergrace-common"]
 
 
 def run(command: list[str], **kwargs) -> None:
