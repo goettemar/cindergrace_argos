@@ -1,13 +1,18 @@
-import json
-from pathlib import Path
-
 import argostranslate.package
 import argostranslate.translate
 import gradio as gr
-from cindergrace_common import BaseConfig, SecurityMixin, env_bool, env_int
+from cindergrace_common import BaseConfig, SecurityMixin, XDGStateStore, env_bool, env_int
 
-# --- Disclaimer Management ---
-DISCLAIMER_FILE = Path.home() / ".config" / "cindergrace_argos" / "disclaimer_accepted.json"
+# --- State Management ---
+DEFAULT_STATE = {
+    "disclaimer_accepted": False,
+    "port": 7866,
+}
+
+_store = XDGStateStore(
+    app_name="cindergrace_argos",
+    defaults=DEFAULT_STATE,
+)
 
 DISCLAIMER_TEXT = """
 ## Third-Party Language Models
@@ -35,21 +40,13 @@ https://www.argosopentech.com/argospm/index/
 
 def is_disclaimer_accepted() -> bool:
     """Check if the disclaimer has been accepted."""
-    if not DISCLAIMER_FILE.exists():
-        return False
-    try:
-        with open(DISCLAIMER_FILE) as f:
-            data = json.load(f)
-            return data.get("accepted", False)
-    except (json.JSONDecodeError, OSError):
-        return False
+    state = _store.load()
+    return state.get("disclaimer_accepted", False)
 
 
 def save_disclaimer_acceptance() -> None:
-    """Save disclaimer acceptance to config file."""
-    DISCLAIMER_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(DISCLAIMER_FILE, "w") as f:
-        json.dump({"accepted": True}, f)
+    """Save disclaimer acceptance to state."""
+    _store.update({"disclaimer_accepted": True})
 
 
 def accept_disclaimer(accepted: bool):
@@ -393,6 +390,30 @@ with gr.Blocks(title="Cindergrace Argos") as demo:
                     outputs=[status_label, package_checkboxes, from_lang, to_lang]
                 )
 
+            with gr.TabItem("Settings"):
+                with gr.Column(elem_classes=["cg-card"]):
+                    gr.Markdown("## Settings")
+                    settings_port = gr.Number(
+                        value=_store.load().get("port", 7866),
+                        precision=0,
+                        minimum=1024,
+                        maximum=65535,
+                        label="Server Port",
+                        info="Port change requires restart",
+                    )
+                    save_settings_btn = gr.Button("Save Settings", variant="primary")
+                    settings_out = gr.Markdown()
+
+                def save_port_setting(port_val):
+                    _store.update({"port": int(port_val)})
+                    return "Settings saved. Restart required for port change."
+
+                save_settings_btn.click(
+                    save_port_setting,
+                    inputs=[settings_port],
+                    outputs=[settings_out],
+                )
+
     # Connect disclaimer acceptance
     accept_btn.click(
         accept_disclaimer,
@@ -401,9 +422,11 @@ with gr.Blocks(title="Cindergrace Argos") as demo:
     )
 
 if __name__ == "__main__":
+    # Port: ENV var > State > Default
+    port = Config.get_port(state_store=_store, default=7866)
     demo.launch(
         server_name=Config.get_server_bind(),
-        server_port=Config.PORT,
+        server_port=port,
         share=False,
         theme=gr.themes.Soft(),
         css=custom_css,
