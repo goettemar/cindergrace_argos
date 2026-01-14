@@ -1,18 +1,26 @@
+from pathlib import Path
+
 import argostranslate.package
 import argostranslate.translate
 import gradio as gr
+from gradio_i18n import Translate, gettext as _
+
 from cindergrace_common import BaseConfig, SecurityMixin, XDGStateStore, env_bool, env_int
 
 # --- State Management ---
 DEFAULT_STATE = {
     "disclaimer_accepted": False,
     "port": 7866,
+    "language": "en",
 }
 
 _store = XDGStateStore(
     app_name="cindergrace_argos",
     defaults=DEFAULT_STATE,
 )
+
+# Path to translations
+TRANSLATIONS_PATH = Path(__file__).parent / "translations" / "ui.yaml"
 
 DISCLAIMER_TEXT = """
 ## Third-Party Language Models
@@ -52,7 +60,7 @@ def save_disclaimer_acceptance() -> None:
 def accept_disclaimer(accepted: bool):
     """Handle disclaimer acceptance."""
     if not accepted:
-        raise gr.Error("Please accept the terms to continue.")
+        raise gr.Error(_("please_accept_terms"))
     save_disclaimer_acceptance()
     # Return visibility updates: hide disclaimer, show main app
     return gr.update(visible=False), gr.update(visible=True)
@@ -69,18 +77,21 @@ class Config(BaseConfig, SecurityMixin):
     # Package management can be disabled for read-only mode
     ENABLE_PACKAGE_MANAGEMENT = env_bool("ARGOS_ENABLE_PACKAGES", True)
 
+
 # Helper to get a mapping of language names to codes
 def get_language_map():
     installed_packages = argostranslate.package.get_installed_packages()
-    unique_languages = set() # To store (name, code) tuples
+    unique_languages = set()  # To store (name, code) tuples
     for pkg in installed_packages:
         unique_languages.add((pkg.from_name, pkg.from_code))
         unique_languages.add((pkg.to_name, pkg.to_code))
 
     return dict(unique_languages)
 
+
 def get_installed_language_names():
     return sorted(get_language_map().keys())
+
 
 # Argos Translate API compatibility helpers (from_lang vs from_name)
 def get_pkg_lang_name(pkg, direction):
@@ -90,12 +101,14 @@ def get_pkg_lang_name(pkg, direction):
         return getattr(lang, "name", None)
     return getattr(pkg, f"{direction}_name", None)
 
+
 def get_pkg_lang_code(pkg, direction):
     attr = f"{direction}_lang"
     if hasattr(pkg, attr):
         lang = getattr(pkg, attr)
         return getattr(lang, "code", None)
     return getattr(pkg, f"{direction}_code", None)
+
 
 # --- Translation Logic ---
 def translate_text(text, from_lang_name, to_lang_name):
@@ -111,12 +124,15 @@ def translate_text(text, from_lang_name, to_lang_name):
         translation = argostranslate.translate.get_translation_from_codes(from_code, to_code)
 
         if not translation:
-            raise gr.Error(f"No installed language package found for {from_lang_name} -> {to_lang_name}. Please install under 'Manage Languages'.")
+            raise gr.Error(
+                _("no_package_found").format(from_lang=from_lang_name, to_lang=to_lang_name)
+            )
 
         return translation.translate(text)
 
     except Exception as e:
         raise gr.Error(str(e)) from e
+
 
 # --- Language Management Logic ---
 def get_all_packages_status():
@@ -125,7 +141,9 @@ def get_all_packages_status():
         argostranslate.package.update_package_index()
         available = argostranslate.package.get_available_packages()
         installed = argostranslate.package.get_installed_packages()
-        installed_codes = {(get_pkg_lang_code(p, "from"), get_pkg_lang_code(p, "to")) for p in installed}
+        installed_codes = {
+            (get_pkg_lang_code(p, "from"), get_pkg_lang_code(p, "to")) for p in installed
+        }
 
         status = {}
         for pkg in available:
@@ -137,15 +155,16 @@ def get_all_packages_status():
             status[name] = (from_code, to_code) in installed_codes
 
         # Ensure default packages are in the list if index is stale
-        if 'Englisch -> Deutsch' not in status:
-            status['Englisch -> Deutsch'] = ('en', 'de') in installed_codes
-        if 'Deutsch -> Englisch' not in status:
-            status['Deutsch -> Englisch'] = ('de', 'en') in installed_codes
+        if "Englisch -> Deutsch" not in status:
+            status["Englisch -> Deutsch"] = ("en", "de") in installed_codes
+        if "Deutsch -> Englisch" not in status:
+            status["Deutsch -> Englisch"] = ("de", "en") in installed_codes
 
         return status
     except Exception as e:
         print(f"Error fetching language packages: {e}")
-        return {'Englisch -> Deutsch': True, 'Deutsch -> Englisch': True} # Fallback
+        return {"Englisch -> Deutsch": True, "Deutsch -> Englisch": True}  # Fallback
+
 
 def update_languages(packages_to_install_names, progress=gr.Progress(track_tqdm=True)):  # noqa: B008
     """Install and uninstall language packages based on selection."""
@@ -156,19 +175,39 @@ def update_languages(packages_to_install_names, progress=gr.Progress(track_tqdm=
     available_packages = argostranslate.package.get_available_packages()
 
     # Map names to package objects
-    name_to_pkg = {f"{get_pkg_lang_name(p, 'from')} -> {get_pkg_lang_name(p, 'to')}": p for p in available_packages}
+    name_to_pkg = {
+        f"{get_pkg_lang_name(p, 'from')} -> {get_pkg_lang_name(p, 'to')}": p
+        for p in available_packages
+    }
 
     # Get currently installed packages
     installed_packages = argostranslate.package.get_installed_packages()
-    installed_names = {f"{get_pkg_lang_name(p, 'from')} -> {get_pkg_lang_name(p, 'to')}": p for p in installed_packages}
+    installed_names = {
+        f"{get_pkg_lang_name(p, 'from')} -> {get_pkg_lang_name(p, 'to')}": p
+        for p in installed_packages
+    }
 
     # Determine which packages to install and uninstall
-    packages_to_install = {name_to_pkg[name] for name in packages_to_install_names if name in name_to_pkg and name not in installed_names}
-    packages_to_uninstall = {p for p in installed_packages if f"{get_pkg_lang_name(p, 'from')} -> {get_pkg_lang_name(p, 'to')}" not in packages_to_install_names}
+    packages_to_install = {
+        name_to_pkg[name]
+        for name in packages_to_install_names
+        if name in name_to_pkg and name not in installed_names
+    }
+    packages_to_uninstall = {
+        p
+        for p in installed_packages
+        if f"{get_pkg_lang_name(p, 'from')} -> {get_pkg_lang_name(p, 'to')}"
+        not in packages_to_install_names
+    }
 
     total_ops = len(packages_to_install) + len(packages_to_uninstall)
     if total_ops == 0:
-        yield "No changes made.", get_checkbox_group_update(), get_source_dropdown_update(), get_target_dropdown_update()
+        yield (
+            _("no_changes"),
+            get_checkbox_group_update(),
+            get_source_dropdown_update(),
+            get_target_dropdown_update(),
+        )
         return
 
     op_count = 0
@@ -177,37 +216,60 @@ def update_languages(packages_to_install_names, progress=gr.Progress(track_tqdm=
     if packages_to_uninstall:
         for pkg in progress.tqdm(packages_to_uninstall, desc="Uninstalling packages"):
             op_count += 1
-            progress(op_count / total_ops, desc=f"Uninstalling {get_pkg_lang_name(pkg, 'from')} -> {get_pkg_lang_name(pkg, 'to')}")
+            progress(
+                op_count / total_ops,
+                desc=f"Uninstalling {get_pkg_lang_name(pkg, 'from')} -> {get_pkg_lang_name(pkg, 'to')}",
+            )
             argostranslate.package.uninstall(pkg)
 
     # Install
     if packages_to_install:
         for pkg in progress.tqdm(packages_to_install, desc="Installing packages"):
             op_count += 1
-            progress(op_count / total_ops, desc=f"Installing {get_pkg_lang_name(pkg, 'from')} -> {get_pkg_lang_name(pkg, 'to')}")
+            progress(
+                op_count / total_ops,
+                desc=f"Installing {get_pkg_lang_name(pkg, 'from')} -> {get_pkg_lang_name(pkg, 'to')}",
+            )
             argostranslate.package.install_from_path(pkg.download())
 
-    yield "Language packages updated successfully!", get_checkbox_group_update(), get_source_dropdown_update(), get_target_dropdown_update()
+    yield (
+        _("packages_updated"),
+        get_checkbox_group_update(),
+        get_source_dropdown_update(),
+        get_target_dropdown_update(),
+    )
 
 
 def get_checkbox_group_update():
     status = get_all_packages_status()
     all_names = sorted(status.keys())
     installed_names = [name for name, installed in status.items() if installed]
-    return gr.CheckboxGroup(choices=all_names, value=installed_names, label="Available Language Packages")
+    return gr.CheckboxGroup(
+        choices=all_names, value=installed_names, label=_("language_packages_label")
+    )
+
 
 def get_source_dropdown_update():
     """Update for source language dropdown."""
     installed_langs = get_installed_language_names()
-    default = "Englisch" if "Englisch" in installed_langs else (installed_langs[0] if installed_langs else None)
-    return gr.Dropdown(choices=installed_langs, value=default, label="Source Language")
+    default = (
+        "Englisch"
+        if "Englisch" in installed_langs
+        else (installed_langs[0] if installed_langs else None)
+    )
+    return gr.Dropdown(choices=installed_langs, value=default, label=_("source_language"))
 
 
 def get_target_dropdown_update():
     """Update for target language dropdown."""
     installed_langs = get_installed_language_names()
-    default = "Deutsch" if "Deutsch" in installed_langs else (installed_langs[0] if installed_langs else None)
-    return gr.Dropdown(choices=installed_langs, value=default, label="Target Language")
+    default = (
+        "Deutsch"
+        if "Deutsch" in installed_langs
+        else (installed_langs[0] if installed_langs else None)
+    )
+    return gr.Dropdown(choices=installed_langs, value=default, label=_("target_language"))
+
 
 # --- UI Definition ---
 custom_css = """
@@ -302,128 +364,147 @@ custom_css = """
 }
 """
 
-with gr.Blocks(title="Cindergrace Argos") as demo:
-    # Check if disclaimer was already accepted
-    disclaimer_already_accepted = is_disclaimer_accepted()
 
-    # --- Disclaimer Section ---
-    with gr.Column(visible=not disclaimer_already_accepted) as disclaimer_section:
-        gr.Markdown(
-            "# Cindergrace Argos Translator",
-            elem_id="hero",
-        )
-        with gr.Column(elem_classes=["cg-card"]):
-            gr.Markdown(DISCLAIMER_TEXT)
-            disclaimer_checkbox = gr.Checkbox(
-                label="I have read and accept the terms above",
-                value=False
+def build_app():
+    """Build the Gradio application with i18n support."""
+    with gr.Blocks(title="Cindergrace Argos") as demo:
+        with Translate(
+            str(TRANSLATIONS_PATH), placeholder_langs=["en", "de"]
+        ) as lang:  # noqa: F841
+            # Check if disclaimer was already accepted
+            disclaimer_already_accepted = is_disclaimer_accepted()
+
+            # --- Disclaimer Section ---
+            with gr.Column(visible=not disclaimer_already_accepted) as disclaimer_section:
+                gr.Markdown(
+                    lambda: f"# {_('app_title')}",
+                    elem_id="hero",
+                )
+                with gr.Column(elem_classes=["cg-card"]):
+                    gr.Markdown(DISCLAIMER_TEXT)
+                    disclaimer_checkbox = gr.Checkbox(
+                        label=_("disclaimer_accept"),
+                        value=False,
+                    )
+                    accept_btn = gr.Button(_("disclaimer_continue"), variant="primary")
+
+            # --- Main Application Section ---
+            with gr.Column(visible=disclaimer_already_accepted) as main_section:
+                gr.Markdown(
+                    lambda: f"# {_('app_title')}\n{_('app_subtitle')}",
+                    elem_id="hero",
+                )
+
+                with gr.Tabs():
+                    with gr.TabItem(_("tab_translate")):
+                        with gr.Row(elem_classes=["cg-translate-row", "cg-card"]):
+                            with gr.Column():
+                                from_lang = gr.Dropdown(
+                                    get_installed_language_names(),
+                                    value=(
+                                        "Englisch"
+                                        if "Englisch" in get_installed_language_names()
+                                        else None
+                                    ),
+                                    label=_("source_language"),
+                                )
+                                source_text = gr.Textbox(
+                                    lines=12,
+                                    label=_("input_text"),
+                                    placeholder=_("input_placeholder"),
+                                    elem_classes=["cg-textarea"],
+                                )
+                            with gr.Column():
+                                to_lang = gr.Dropdown(
+                                    get_installed_language_names(),
+                                    value=(
+                                        "Deutsch"
+                                        if "Deutsch" in get_installed_language_names()
+                                        else None
+                                    ),
+                                    label=_("target_language"),
+                                )
+                                translated_text = gr.Textbox(
+                                    lines=12,
+                                    label=_("translation"),
+                                    interactive=False,
+                                    elem_classes=["cg-textarea"],
+                                )
+
+                        translate_btn = gr.Button(_("translate_btn"), variant="primary")
+                        translate_btn.click(
+                            translate_text,
+                            inputs=[source_text, from_lang, to_lang],
+                            outputs=translated_text,
+                        )
+
+                    with gr.TabItem(_("tab_manage_languages")):
+                        status_label = gr.Label(_("packages_status_default"))
+
+                        # Initial state
+                        packages_status = get_all_packages_status()
+                        all_package_names = sorted(packages_status.keys())
+                        installed_package_names = [
+                            name for name, installed in packages_status.items() if installed
+                        ]
+
+                        with gr.Column(elem_classes=["cg-card"]):
+                            package_checkboxes = gr.CheckboxGroup(
+                                choices=all_package_names,
+                                value=installed_package_names,
+                                label=_("language_packages_label"),
+                                info=_("language_packages_info"),
+                            )
+
+                        update_btn = gr.Button(_("update_packages_btn"), variant="primary")
+
+                        update_btn.click(
+                            update_languages,
+                            inputs=[package_checkboxes],
+                            outputs=[status_label, package_checkboxes, from_lang, to_lang],
+                        )
+
+                    with gr.TabItem(_("tab_settings")):
+                        with gr.Column(elem_classes=["cg-card"]):
+                            gr.Markdown(lambda: f"## {_('settings_title')}")
+                            settings_port = gr.Number(
+                                value=_store.load().get("port", 7866),
+                                precision=0,
+                                minimum=1024,
+                                maximum=65535,
+                                label=_("server_port"),
+                                info=_("port_restart_hint"),
+                            )
+                            save_settings_btn = gr.Button(
+                                _("save_settings_btn"), variant="primary"
+                            )
+                            settings_out = gr.Markdown()
+
+                        def save_port_setting(port_val):
+                            _store.update({"port": int(port_val)})
+                            return _("settings_saved")
+
+                        save_settings_btn.click(
+                            save_port_setting,
+                            inputs=[settings_port],
+                            outputs=[settings_out],
+                        )
+
+            # Connect disclaimer acceptance
+            accept_btn.click(
+                accept_disclaimer,
+                inputs=[disclaimer_checkbox],
+                outputs=[disclaimer_section, main_section],
             )
-            accept_btn = gr.Button("Continue", variant="primary")
 
-    # --- Main Application Section ---
-    with gr.Column(visible=disclaimer_already_accepted) as main_section:
-        gr.Markdown(
-            "# Cindergrace Argos Translator\nTranslate quickly, read calmly, decide clearly.",
-            elem_id="hero",
-        )
+    return demo
 
-        with gr.Tabs():
-            with gr.TabItem("Translate"):
-                with gr.Row(elem_classes=["cg-translate-row", "cg-card"]):
-                    with gr.Column():
-                        from_lang = gr.Dropdown(
-                            get_installed_language_names(),
-                            value="Englisch" if "Englisch" in get_installed_language_names() else None,
-                            label="Source Language"
-                        )
-                        source_text = gr.Textbox(
-                            lines=12,
-                            label="Input Text",
-                            placeholder="Enter your text here...",
-                            elem_classes=["cg-textarea"]
-                        )
-                    with gr.Column():
-                        to_lang = gr.Dropdown(
-                            get_installed_language_names(),
-                            value="Deutsch" if "Deutsch" in get_installed_language_names() else None,
-                            label="Target Language"
-                        )
-                        translated_text = gr.Textbox(
-                            lines=12,
-                            label="Translation",
-                            interactive=False,
-                            elem_classes=["cg-textarea"]
-                        )
 
-                translate_btn = gr.Button("Translate", variant="primary")
-                translate_btn.click(
-                    translate_text,
-                    inputs=[source_text, from_lang, to_lang],
-                    outputs=translated_text
-                )
-
-            with gr.TabItem("Manage Languages"):
-                status_label = gr.Label(
-                    "Here you can add or remove language packages for translation."
-                )
-
-                # Initial state
-                packages_status = get_all_packages_status()
-                all_package_names = sorted(packages_status.keys())
-                installed_package_names = [
-                    name for name, installed in packages_status.items() if installed
-                ]
-
-                with gr.Column(elem_classes=["cg-card"]):
-                    package_checkboxes = gr.CheckboxGroup(
-                        choices=all_package_names,
-                        value=installed_package_names,
-                        label="Available Language Packages",
-                        info="Select the packages that should be installed."
-                    )
-
-                update_btn = gr.Button("Update Language Packages", variant="primary")
-
-                update_btn.click(
-                    update_languages,
-                    inputs=[package_checkboxes],
-                    outputs=[status_label, package_checkboxes, from_lang, to_lang]
-                )
-
-            with gr.TabItem("Settings"):
-                with gr.Column(elem_classes=["cg-card"]):
-                    gr.Markdown("## Settings")
-                    settings_port = gr.Number(
-                        value=_store.load().get("port", 7866),
-                        precision=0,
-                        minimum=1024,
-                        maximum=65535,
-                        label="Server Port",
-                        info="Port change requires restart",
-                    )
-                    save_settings_btn = gr.Button("Save Settings", variant="primary")
-                    settings_out = gr.Markdown()
-
-                def save_port_setting(port_val):
-                    _store.update({"port": int(port_val)})
-                    return "Settings saved. Restart required for port change."
-
-                save_settings_btn.click(
-                    save_port_setting,
-                    inputs=[settings_port],
-                    outputs=[settings_out],
-                )
-
-    # Connect disclaimer acceptance
-    accept_btn.click(
-        accept_disclaimer,
-        inputs=[disclaimer_checkbox],
-        outputs=[disclaimer_section, main_section]
-    )
-
-if __name__ == "__main__":
+def main():
+    """Main entry point."""
     # Port: ENV var > State > Default
     port = Config.get_port(state_store=_store, default=7866)
+    demo = build_app()
     demo.launch(
         server_name=Config.get_server_bind(),
         server_port=port,
@@ -431,3 +512,7 @@ if __name__ == "__main__":
         theme=gr.themes.Soft(),
         css=custom_css,
     )
+
+
+if __name__ == "__main__":
+    main()

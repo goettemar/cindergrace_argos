@@ -1,0 +1,84 @@
+# Argos Translator UI Translations
+# Auto-detected from browser language, fallback to English
+
+en:
+  # === App Header ===
+  app_title: "Cindergrace Argos Translator"
+  app_subtitle: "Translate quickly, read calmly, decide clearly."
+
+  # === Tabs ===
+  tab_translate: "Translate"
+  tab_manage_languages: "Manage Languages"
+  tab_settings: "Settings"
+
+  # === Disclaimer ===
+  disclaimer_accept: "I have read and accept the terms above"
+  disclaimer_continue: "Continue"
+
+  # === Translate Tab ===
+  source_language: "Source Language"
+  target_language: "Target Language"
+  input_text: "Input Text"
+  input_placeholder: "Enter your text here..."
+  translation: "Translation"
+  translate_btn: "Translate"
+
+  # === Manage Languages Tab ===
+  language_packages_label: "Available Language Packages"
+  language_packages_info: "Select the packages that should be installed."
+  update_packages_btn: "Update Language Packages"
+  packages_status_default: "Here you can add or remove language packages for translation."
+  no_changes: "No changes made."
+  packages_updated: "Language packages updated successfully!"
+
+  # === Settings Tab ===
+  settings_title: "Settings"
+  server_port: "Server Port"
+  port_restart_hint: "Port change requires restart"
+  save_settings_btn: "Save Settings"
+  settings_saved: "Settings saved. Restart required for port change."
+
+  # === Error Messages ===
+  no_package_found: "No installed language package found for {from_lang} -> {to_lang}. Please install under 'Manage Languages'."
+  please_accept_terms: "Please accept the terms to continue."
+
+de:
+  # === App Header ===
+  app_title: "Cindergrace Argos Uebersetzer"
+  app_subtitle: "Schnell uebersetzen, ruhig lesen, klar entscheiden."
+
+  # === Tabs ===
+  tab_translate: "Uebersetzen"
+  tab_manage_languages: "Sprachen verwalten"
+  tab_settings: "Einstellungen"
+
+  # === Disclaimer ===
+  disclaimer_accept: "Ich habe die obigen Bedingungen gelesen und akzeptiere sie"
+  disclaimer_continue: "Weiter"
+
+  # === Translate Tab ===
+  source_language: "Ausgangssprache"
+  target_language: "Zielsprache"
+  input_text: "Eingabetext"
+  input_placeholder: "Geben Sie hier Ihren Text ein..."
+  translation: "Uebersetzung"
+  translate_btn: "Uebersetzen"
+
+  # === Manage Languages Tab ===
+  language_packages_label: "Verfuegbare Sprachpakete"
+  language_packages_info: "Waehlen Sie die Pakete aus, die installiert werden sollen."
+  update_packages_btn: "Sprachpakete aktualisieren"
+  packages_status_default: "Hier koennen Sie Sprachpakete fuer die Uebersetzung hinzufuegen oder entfernen."
+  no_changes: "Keine Aenderungen vorgenommen."
+  packages_updated: "Sprachpakete erfolgreich aktualisiert!"
+
+  # === Settings Tab ===
+  settings_title: "Einstellungen"
+  server_port: "Server-Port"
+  port_restart_hint: "Port-Aenderung erfordert Neustart"
+  save_settings_btn: "Einstellungen speichern"
+  settings_saved: "Einstellungen gespeichert. Neustart fuer Port-Aenderung erforderlich."
+
+  # === Error Messages ===
+  no_package_found: "Kein installiertes Sprachpaket fuer {from_lang} -> {to_lang} gefunden. Bitte unter 'Sprachen verwalten' installieren."
+  please_accept_terms: "Bitte akzeptieren Sie die Bedingungen, um fortzufahren."
