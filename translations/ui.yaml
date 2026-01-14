@@ -33,6 +33,7 @@ en:
 
   # === Settings Tab ===
   settings_title: "Settings"
+  language: "Language"
   server_port: "Server Port"
   port_restart_hint: "Port change requires restart"
   save_settings_btn: "Save Settings"
@@ -74,6 +75,7 @@ de:
 
   # === Settings Tab ===
   settings_title: "Einstellungen"
+  language: "Sprache"
   server_port: "Server-Port"
   port_restart_hint: "Port-Aenderung erfordert Neustart"
   save_settings_btn: "Einstellungen speichern"

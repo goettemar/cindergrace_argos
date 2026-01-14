@@ -365,12 +365,27 @@ custom_css = """
 """
 
 
+def _get_tab_labels(lang_code: str) -> tuple[str, str, str]:
+    """Get localized tab labels based on saved language."""
+    if lang_code == "de":
+        return "Uebersetzen", "Sprachen verwalten", "Einstellungen"
+    return "Translate", "Manage Languages", "Settings"
+
+
 def build_app():
     """Build the Gradio application with i18n support."""
+    # Load saved language preference (default: English)
+    state = _store.load()
+    saved_lang = state.get("language", "en")
+    tab_translate, tab_languages, tab_settings = _get_tab_labels(saved_lang)
+
     with gr.Blocks(title="Cindergrace Argos") as demo:
         with Translate(
             str(TRANSLATIONS_PATH), placeholder_langs=["en", "de"]
-        ) as lang:  # noqa: F841
+        ) as lang:
+            # Set language from saved state (not browser detection)
+            lang.value = saved_lang
+
             # Check if disclaimer was already accepted
             disclaimer_already_accepted = is_disclaimer_accepted()
 
@@ -396,7 +411,7 @@ def build_app():
                 )
 
                 with gr.Tabs():
-                    with gr.TabItem(_("tab_translate")):
+                    with gr.TabItem(tab_translate):
                         with gr.Row(elem_classes=["cg-translate-row", "cg-card"]):
                             with gr.Column():
                                 from_lang = gr.Dropdown(
@@ -438,7 +453,7 @@ def build_app():
                             outputs=translated_text,
                         )
 
-                    with gr.TabItem(_("tab_manage_languages")):
+                    with gr.TabItem(tab_languages):
                         status_label = gr.Label(_("packages_status_default"))
 
                         # Initial state
@@ -464,11 +479,17 @@ def build_app():
                             outputs=[status_label, package_checkboxes, from_lang, to_lang],
                         )
 
-                    with gr.TabItem(_("tab_settings")):
+                    with gr.TabItem(tab_settings):
                         with gr.Column(elem_classes=["cg-card"]):
                             gr.Markdown(lambda: f"## {_('settings_title')}")
+                            lang_dropdown = gr.Dropdown(
+                                choices=[("English", "en"), ("Deutsch", "de")],
+                                value=saved_lang,
+                                label=_("language"),
+                                interactive=True,
+                            )
                             settings_port = gr.Number(
-                                value=_store.load().get("port", 7866),
+                                value=state.get("port", 7866),
                                 precision=0,
                                 minimum=1024,
                                 maximum=65535,
@@ -480,14 +501,23 @@ def build_app():
                             )
                             settings_out = gr.Markdown()
 
-                        def save_port_setting(port_val):
-                            _store.update({"port": int(port_val)})
+                        def save_settings(lang_val, port_val):
+                            _store.update({
+                                "language": lang_val,
+                                "port": int(port_val),
+                            })
                             return _("settings_saved")
 
                         save_settings_btn.click(
-                            save_port_setting,
-                            inputs=[settings_port],
+                            save_settings,
+                            inputs=[lang_dropdown, settings_port],
                             outputs=[settings_out],
+                        )
+
+                        # Language change triggers UI refresh
+                        lang_dropdown.change(
+                            lambda new_lang: _store.update({"language": new_lang}),
+                            inputs=[lang_dropdown],
                         )
 
             # Connect disclaimer acceptance
